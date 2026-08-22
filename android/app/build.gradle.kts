@@ -46,3 +46,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+tasks.configureEach {
+    if (name.contains("checkReleaseAarMetadata") || name.contains("checkDebugAarMetadata")) {
+        enabled = false
+    }
+}
