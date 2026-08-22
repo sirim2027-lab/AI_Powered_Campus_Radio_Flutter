@@ -1,6 +1,12 @@
 name: Android APK
 
 on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
   workflow_dispatch:
     inputs:
       build_name:

@@ -41,48 +41,46 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBUXhQBeUgO1h3rqBlGg9Dp6JkmL8nLXVw',
-    appId: '1:839908546527:web:d395395dffc4ba5644166a',
-    messagingSenderId: '839908546527',
-    projectId: 'ai-powered-campus-radio',
-    authDomain: 'ai-powered-campus-radio.firebaseapp.com',
-    storageBucket: 'ai-powered-campus-radio.firebasestorage.app',
-    measurementId: 'G-TRGJY1HQF2',
+    apiKey: 'AIzaSyB1d97tP173QsdgJtddC-MnXnrw456iUWQ',
+    appId: '1:282752291468:web:73000ba23fdfa9e2ff21a9',
+    messagingSenderId: '282752291468',
+    projectId: 'cognitive-tuition-rlpe4q',
+    authDomain: 'cognitive-tuition-rlpe4q.firebaseapp.com',
+    storageBucket: 'cognitive-tuition-rlpe4q.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCwqsmQ089y2ZKYDZjs01emoBP1nriIQMQ',
-    appId: '1:839908546527:android:281138e696ab734644166a',
-    messagingSenderId: '839908546527',
-    projectId: 'ai-powered-campus-radio',
-    storageBucket: 'ai-powered-campus-radio.firebasestorage.app',
+    apiKey: 'AIzaSyBGGkc3zsQlyrACXIxg1Dm-vjESauq2h_I',
+    appId: '1:282752291468:android:b82d3a9d398ae543ff21a9',
+    messagingSenderId: '282752291468',
+    projectId: 'cognitive-tuition-rlpe4q',
+    storageBucket: 'cognitive-tuition-rlpe4q.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDzr6gihpH283XZn-TjddPRsVyOO3C-6r4',
-    appId: '1:839908546527:ios:553bd869be7584a544166a',
-    messagingSenderId: '839908546527',
-    projectId: 'ai-powered-campus-radio',
-    storageBucket: 'ai-powered-campus-radio.firebasestorage.app',
-    iosBundleId: 'com.example.myFirstApp',
+    apiKey: 'AIzaSyC5iewFQfpKI7gzJW8GoDHI1lg_eMwmww8',
+    appId: '1:282752291468:ios:434f5565426e66acff21a9',
+    messagingSenderId: '282752291468',
+    projectId: 'cognitive-tuition-rlpe4q',
+    storageBucket: 'cognitive-tuition-rlpe4q.firebasestorage.app',
+    iosBundleId: 'com.mycompany.cognitivetuition',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDzr6gihpH283XZn-TjddPRsVyOO3C-6r4',
-    appId: '1:839908546527:ios:553bd869be7584a544166a',
-    messagingSenderId: '839908546527',
-    projectId: 'ai-powered-campus-radio',
-    storageBucket: 'ai-powered-campus-radio.firebasestorage.app',
-    iosBundleId: 'com.example.myFirstApp',
+    apiKey: 'AIzaSyC5iewFQfpKI7gzJW8GoDHI1lg_eMwmww8',
+    appId: '1:282752291468:ios:434f5565426e66acff21a9',
+    messagingSenderId: '282752291468',
+    projectId: 'cognitive-tuition-rlpe4q',
+    storageBucket: 'cognitive-tuition-rlpe4q.firebasestorage.app',
+    iosBundleId: 'com.mycompany.cognitivetuition',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBUXhQBeUgO1h3rqBlGg9Dp6JkmL8nLXVw',
-    appId: '1:839908546527:web:fb81f3110270c80e44166a',
-    messagingSenderId: '839908546527',
-    projectId: 'ai-powered-campus-radio',
-    authDomain: 'ai-powered-campus-radio.firebaseapp.com',
-    storageBucket: 'ai-powered-campus-radio.firebasestorage.app',
-    measurementId: 'G-36X1PYZC3P',
+    apiKey: 'AIzaSyB1d97tP173QsdgJtddC-MnXnrw456iUWQ',
+    appId: '1:282752291468:web:73000ba23fdfa9e2ff21a9',
+    messagingSenderId: '282752291468',
+    projectId: 'cognitive-tuition-rlpe4q',
+    authDomain: 'cognitive-tuition-rlpe4q.firebaseapp.com',
+    storageBucket: 'cognitive-tuition-rlpe4q.firebasestorage.app',
   );
 }
