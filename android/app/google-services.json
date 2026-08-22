@@ -1,26 +1,59 @@
 {
   "project_info": {
-    "project_number": "839908546527",
-    "project_id": "ai-powered-campus-radio",
-    "storage_bucket": "ai-powered-campus-radio.firebasestorage.app"
+    "project_number": "282752291468",
+    "project_id": "cognitive-tuition-rlpe4q",
+    "storage_bucket": "cognitive-tuition-rlpe4q.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:839908546527:android:281138e696ab734644166a",
+        "mobilesdk_app_id": "1:282752291468:android:b82d3a9d398ae543ff21a9",
         "android_client_info": {
-          "package_name": "com.example.my_first_app"
+          "package_name": "com.mycompany.cognitivetuition"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "282752291468-054q63up4sbruujjmumujuii5ehqfdso.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mycompany.cognitivetuition",
+            "certificate_hash": "9bbb3186b2189ef16d8f272bdab59362c395cbb4"
+          }
+        },
+        {
+          "client_id": "282752291468-m70tosb0jbb8j6u67mfu78hcf8r0qdbb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mycompany.cognitivetuition",
+            "certificate_hash": "308c3fe7919fb7510f7d4f0ac57fa13c209a863a"
+          }
+        },
+        {
+          "client_id": "282752291468-s7gvvqb80nhbmpttt5gsgjkovchvvers.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyCwqsmQ089y2ZKYDZjs01emoBP1nriIQMQ"
+          "current_key": "AIzaSyBGGkc3zsQlyrACXIxg1Dm-vjESauq2h_I"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "282752291468-s7gvvqb80nhbmpttt5gsgjkovchvvers.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "282752291468-heqr3d5ean6h0o4n1hjpja6mabhkhdkr.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mycompany.cognitivetuition"
+              }
+            }
+          ]
         }
       }
     }
