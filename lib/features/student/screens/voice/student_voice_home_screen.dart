@@ -1,2 +1,200 @@
-import 'package:flutter/material.dart';import 'student_voice_record_screen.dart';import 'student_voice_submit_screen.dart';import 'student_voice_submissions_screen.dart';
-class StudentVoiceHomeScreen extends StatelessWidget{const StudentVoiceHomeScreen({super.key});@override Widget build(BuildContext context)=>Scaffold(backgroundColor:const Color(0xFFF6F7FB),body:ListView(children:[Container(padding:const EdgeInsets.fromLTRB(20,36,20,34),decoration:const BoxDecoration(gradient:LinearGradient(colors:[Color(0xFF1E1B4B),Color(0xFF4F46E5),Color(0xFF7C3AED)])),child:const Column(children:[Icon(Icons.mic_none_rounded,size:50,color:Colors.white),SizedBox(height:10),Text('Student Voice',style:TextStyle(color:Colors.white,fontSize:28,fontWeight:FontWeight.w500)),SizedBox(height:5),Text('“Your voice. Your campus.”',style:TextStyle(color:Color(0xCCFFFFFF),fontStyle:FontStyle.italic)),SizedBox(height:12),Chip(label:Text('Submissions are moderated before broadcast',style:TextStyle(color:Colors.white,fontSize:11)),avatar:Icon(Icons.verified_outlined,color:Color(0xFF34D399),size:16),backgroundColor:Color(0x22FFFFFF),side:BorderSide(color:Color(0x33FFFFFF)))])),Padding(padding:const EdgeInsets.all(16),child:Column(children:[_info(),const SizedBox(height:18),_action(context,'Record Voice','Record audio directly in the app',Icons.mic_none_rounded,true,()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const StudentVoiceRecordScreen()))),const SizedBox(height:12),_action(context,'Upload Audio','Add an existing audio file',Icons.upload_file_outlined,false,()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const StudentVoiceSubmitScreen()))),const SizedBox(height:12),_action(context,'My Submissions','No backend submissions are available yet',Icons.assignment_outlined,false,()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const StudentVoiceSubmissionsScreen())))]))]));Widget _info()=>Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20)),child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('How It Works',style:TextStyle(fontWeight:FontWeight.w800)),SizedBox(height:10),Text('1  Record or upload your audio segment\n2  Fill in topic, category, and description\n3  Submit for admin review and approval\n4  Approved content is broadcast on Campus Radio',style:TextStyle(color:Color(0xFF6B7280),height:1.8)),SizedBox(height:10),Text('Students cannot broadcast directly. Every submission requires Admin moderation.',style:TextStyle(color:Color(0xFF92400E),fontSize:12,height:1.5))]);Widget _action(BuildContext c,String title,String sub,IconData icon,bool primary,VoidCallback tap)=>Material(color:primary?const Color(0xFF4F46E5):Colors.white,borderRadius:BorderRadius.circular(16),child:InkWell(onTap:tap,borderRadius:BorderRadius.circular(16),child:Padding(padding:const EdgeInsets.all(17),child:Row(children:[Icon(icon,color:primary?Colors.white:const Color(0xFF4F46E5),size:28),const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:TextStyle(color:primary?Colors.white:const Color(0xFF111827),fontWeight:FontWeight.w800)),Text(sub,style:TextStyle(color:primary?const Color(0xCCFFFFFF):const Color(0xFF6B7280),fontSize:12))])),Icon(Icons.chevron_right,color:primary?Colors.white:const Color(0xFF6B7280))]))));}
+import 'package:flutter/material.dart';
+
+import 'student_voice_record_screen.dart';
+import 'student_voice_submit_screen.dart';
+import 'student_voice_submissions_screen.dart';
+
+class StudentVoiceHomeScreen extends StatelessWidget {
+  const StudentVoiceHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F7FB),
+      body: ListView(
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 36, 20, 34),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF1E1B4B),
+                  Color(0xFF4F46E5),
+                  Color(0xFF7C3AED),
+                ],
+              ),
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.mic_none_rounded, size: 50, color: Colors.white),
+                SizedBox(height: 10),
+                Text(
+                  'Student Voice',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  '“Your voice. Your campus.”',
+                  style: TextStyle(
+                    color: Color(0xCCFFFFFF),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Chip(
+                  label: Text(
+                    'Submissions are moderated before broadcast',
+                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                  avatar: Icon(
+                    Icons.verified_outlined,
+                    color: Color(0xFF34D399),
+                    size: 16,
+                  ),
+                  backgroundColor: Color(0x22FFFFFF),
+                  side: BorderSide(color: Color(0x33FFFFFF)),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _info(),
+                const SizedBox(height: 18),
+                _action(
+                  context,
+                  'Record Voice',
+                  'Record audio directly in the app',
+                  Icons.mic_none_rounded,
+                  true,
+                  () => _open(context, const StudentVoiceRecordScreen()),
+                ),
+                const SizedBox(height: 12),
+                _action(
+                  context,
+                  'Upload Audio',
+                  'Add an existing audio file',
+                  Icons.upload_file_outlined,
+                  false,
+                  () => _open(context, const StudentVoiceSubmitScreen()),
+                ),
+                const SizedBox(height: 12),
+                _action(
+                  context,
+                  'My Submissions',
+                  'No backend submissions are available yet',
+                  Icons.assignment_outlined,
+                  false,
+                  () => _open(context, const StudentVoiceSubmissionsScreen()),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _open(BuildContext context, Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  Widget _info() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('How It Works', style: TextStyle(fontWeight: FontWeight.w800)),
+          SizedBox(height: 10),
+          Text(
+            '1  Record or upload your audio segment\n'
+            '2  Fill in topic, category, and description\n'
+            '3  Submit for admin review and approval\n'
+            '4  Approved content is broadcast on Campus Radio',
+            style: TextStyle(color: Color(0xFF6B7280), height: 1.8),
+          ),
+          SizedBox(height: 10),
+          Text(
+            'Students cannot broadcast directly. Every submission requires Admin moderation.',
+            style: TextStyle(
+              color: Color(0xFF92400E),
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _action(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    bool primary,
+    VoidCallback onTap,
+  ) {
+    return Material(
+      color: primary ? const Color(0xFF4F46E5) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(17),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: primary ? Colors.white : const Color(0xFF4F46E5),
+                size: 28,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: primary
+                            ? Colors.white
+                            : const Color(0xFF111827),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: primary
+                            ? const Color(0xCCFFFFFF)
+                            : const Color(0xFF6B7280),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: primary ? Colors.white : const Color(0xFF6B7280),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

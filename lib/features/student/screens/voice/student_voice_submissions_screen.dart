@@ -1,2 +1,63 @@
-import 'package:flutter/material.dart';import 'student_voice_record_screen.dart';
-class StudentVoiceSubmissionsScreen extends StatelessWidget{const StudentVoiceSubmissionsScreen({super.key});@override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(backgroundColor:const Color(0xFF312E81),foregroundColor:Colors.white,title:const Text('My Submissions')),body:Center(child:Padding(padding:const EdgeInsets.all(32),child:Column(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.mic_none_rounded,size:52,color:Color(0xFF9CA3AF)),const SizedBox(height:14),const Text('No submissions available',style:TextStyle(fontSize:18,fontWeight:FontWeight.w700)),const SizedBox(height:8),const Text('Student Voice submissions cannot be retrieved because no approved Firestore schema exists for them.',textAlign:TextAlign.center,style:TextStyle(color:Color(0xFF6B7280),height:1.5)),const SizedBox(height:20),FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const StudentVoiceRecordScreen())),icon:const Icon(Icons.mic_none_rounded),label:const Text('Record Voice'))])));}
+import 'package:flutter/material.dart';
+
+import 'student_voice_record_screen.dart';
+
+class StudentVoiceSubmissionsScreen extends StatelessWidget {
+  const StudentVoiceSubmissionsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF312E81),
+        foregroundColor: Colors.white,
+        title: const Text('My Submissions'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.mic_none_rounded,
+                size: 52,
+                color: Color(0xFF9CA3AF),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'No submissions available',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Student Voice submissions cannot be retrieved because no approved Firestore schema exists for them.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StudentVoiceRecordScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.mic_none_rounded),
+                label: const Text('Record Voice'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

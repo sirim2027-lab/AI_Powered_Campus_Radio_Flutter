@@ -1,2 +1,72 @@
-import 'package:flutter/material.dart';import 'student_voice_submit_screen.dart';
-class StudentVoiceRecordScreen extends StatelessWidget{const StudentVoiceRecordScreen({super.key});@override Widget build(BuildContext context)=>Scaffold(backgroundColor:const Color(0xFF0F0C29),appBar:AppBar(backgroundColor:Colors.transparent,foregroundColor:Colors.white,title:const Text('Record Voice')),body:Center(child:Padding(padding:const EdgeInsets.all(28),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[const CircleAvatar(radius:62,backgroundColor:Color(0xFF4F46E5),child:Icon(Icons.mic_none_rounded,color:Colors.white,size:58)),const SizedBox(height:28),const Text('Recording setup required',style:TextStyle(color:Colors.white,fontSize:23,fontWeight:FontWeight.w600)),const SizedBox(height:10),const Text('This project has no approved microphone-recording dependency or Storage destination for student voice files. Recording is unavailable until those are configured.',textAlign:TextAlign.center,style:TextStyle(color:Color(0xAAFFFFFF),height:1.6)),const SizedBox(height:28),OutlinedButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const StudentVoiceSubmitScreen())),icon:const Icon(Icons.edit_outlined),label:const Text('Continue with submission details'),style:OutlinedButton.styleFrom(foregroundColor:Colors.white))])));}
+import 'package:flutter/material.dart';
+
+import 'student_voice_submit_screen.dart';
+
+class StudentVoiceRecordScreen extends StatelessWidget {
+  const StudentVoiceRecordScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0C29),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        title: const Text('Record Voice'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircleAvatar(
+                radius: 62,
+                backgroundColor: Color(0xFF4F46E5),
+                child: Icon(
+                  Icons.mic_none_rounded,
+                  color: Colors.white,
+                  size: 58,
+                ),
+              ),
+              const SizedBox(height: 28),
+              const Text(
+                'Recording setup required',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 23,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'This project has no approved microphone-recording dependency or Storage destination for student voice files. Recording is unavailable until those are configured.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xAAFFFFFF),
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 28),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StudentVoiceSubmitScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Continue with submission details'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
