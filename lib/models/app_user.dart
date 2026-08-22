@@ -8,6 +8,7 @@ class AppUser {
     required this.role,
     this.department,
     this.studentId,
+    this.semester,
   });
 
   final String uid;
@@ -16,6 +17,7 @@ class AppUser {
   final UserRole role;
   final String? department;
   final String? studentId;
+  final String? semester;
 
   bool get isStaff => role == UserRole.superAdmin || role == UserRole.admin || role == UserRole.staff;
 
@@ -30,7 +32,8 @@ class AppUser {
   factory AppUser.fromFirestore(String uid, Map<String, dynamic> data) {
     final value = (data['role'] as String? ?? '').trim().toLowerCase();
     final role = switch (value) {
-      'super' || 'super admin' || 'superadmin' => UserRole.superAdmin,
+      'super' || 'super admin' || 'superadmin' || 'super_admin' =>
+        UserRole.superAdmin,
       'admin' => UserRole.admin,
       'staff' => UserRole.staff,
       'student' => UserRole.student,
@@ -43,6 +46,7 @@ class AppUser {
       role: role,
       department: data['department'] as String?,
       studentId: data['studentId'] as String?,
+      semester: data['semester'] as String?,
     );
   }
 }

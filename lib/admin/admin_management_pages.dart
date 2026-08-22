@@ -123,7 +123,8 @@ class AdminCollectionPage extends StatelessWidget {
     final controllers = {for (final field in fields) field.key: TextEditingController(text: document?.data()[field.key]?.toString() ?? '')};
     var isExtracting = false;
     XFile? poster;
-    final save = await showDialog<bool>(
+    var saving = false;
+    await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
@@ -192,16 +193,43 @@ class AdminCollectionPage extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+            TextButton(onPressed: saving ? null : () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: saving ? null : () async {
+                final data = {for (final field in fields) field.key: controllers[field.key]!.text.trim()};
+                if (data.values.any((value) => value.isEmpty)) {
+                  _snack(context, 'Please complete every field.', error: true);
+                  return;
+                }
+                setDialogState(() => saving = true);
+                try {
+                  if (poster != null) data['posterBytes'] = base64Encode(await poster!.readAsBytes());
+                  if (document == null) {
+                    await FirestoreService.instance.createDocument(collection, data);
+                  } else {
+                    await FirestoreService.instance.updateDocument(collection, document.id, data);
+                  }
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  if (context.mounted) _snack(context, '$title saved.');
+                } on FirebaseException catch (error) {
+                  if (dialogContext.mounted) {
+                    _snack(context, error.code == 'permission-denied' ? 'You do not have permission to change this item.' : 'Could not save this item. Please try again.', error: true);
+                    setDialogState(() => saving = false);
+                  }
+                } catch (_) {
+                  if (dialogContext.mounted) {
+                    _snack(context, 'Could not save this item. Please try again.', error: true);
+                    setDialogState(() => saving = false);
+                  }
+                }
+              },
+              child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Save'),
+            ),
           ],
         ),
       ),
     );
-    if (save != true || !context.mounted) { for (final controller in controllers.values) { controller.dispose(); } return; }
-    final data = {for (final field in fields) field.key: controllers[field.key]!.text.trim()};
-    if (poster != null) data['posterBytes'] = base64Encode(await poster!.readAsBytes());
-    if (data.values.any((value) => value.isEmpty)) { _snack(context, 'Please complete every field.', error: true); } else { try { if (document == null) { await FirestoreService.instance.createDocument(collection, data); } else { await FirestoreService.instance.updateDocument(collection, document.id, data); } if (context.mounted) _snack(context, '$title saved.'); } on FirebaseException catch (e) { if (context.mounted) _snack(context, e.code == 'permission-denied' ? 'You do not have permission to change this item.' : 'Could not save this item.', error: true); } }
     for (final controller in controllers.values) { controller.dispose(); }
   }
 
@@ -227,9 +255,43 @@ class AdminCollectionPage extends StatelessWidget {
   }
 
   Future<void> _delete(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> document) async {
-    final confirm = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(title: const Text('Delete item?'), content: const Text('This cannot be undone.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Delete'))]));
-    if (confirm != true) return;
-    try { await FirestoreService.instance.deleteDocument(collection, document.id); if (context.mounted) _snack(context, '$title deleted.'); } on FirebaseException catch (_) { if (context.mounted) _snack(context, 'Could not delete this item.', error: true); }
+    var deleting = false;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Delete item?'),
+          content: const Text('This cannot be undone.'),
+          actions: [
+            TextButton(onPressed: deleting ? null : () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: deleting ? null : () async {
+                setDialogState(() => deleting = true);
+                try {
+                  await FirestoreService.instance.deleteDocument(collection, document.id);
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  if (context.mounted) _snack(context, '$title deleted.');
+                } on FirebaseException catch (error) {
+                  if (dialogContext.mounted) {
+                    _snack(context, error.code == 'permission-denied' ? 'You do not have permission to delete this item.' : 'Could not delete this item. Please try again.', error: true);
+                    setDialogState(() => deleting = false);
+                  }
+                } catch (_) {
+                  if (dialogContext.mounted) {
+                    _snack(context, 'Could not delete this item. Please try again.', error: true);
+                    setDialogState(() => deleting = false);
+                  }
+                }
+              },
+              child: deleting ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Delete'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _snack(BuildContext context, String message, {bool error = false}) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700));
@@ -279,12 +341,165 @@ class _AdminQueriesPageState extends State<AdminQueriesPage> {
 
   Widget _metric(String value, String label, Color color) => Expanded(child: Container(height: 62, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE5E1FF))), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(value, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: color)), Text(label, style: const TextStyle(fontSize: 9, color: Color(0xFF64748B)))])));
   Widget _chip(String label) => Padding(padding: const EdgeInsets.only(right: 7), child: ChoiceChip(label: Text(label, style: const TextStyle(fontSize: 10)), selected: _filter == label, onSelected: (_) => setState(() => _filter = label), selectedColor: const Color(0xFF4F46E5), labelStyle: TextStyle(color: _filter == label ? Colors.white : const Color(0xFF64748B), fontWeight: FontWeight.w700), side: const BorderSide(color: Color(0xFFDDD6FE)), visualDensity: VisualDensity.compact));
-  Widget _queryCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) { final data = doc.data(); final status = '${data['status'] ?? 'open'}'; final shown = status == 'open' ? 'New' : status; final color = status == 'resolved' ? const Color(0xFF16A34A) : status == 'in progress' ? const Color(0xFF7C3AED) : status == 'pending' ? const Color(0xFFF59E0B) : const Color(0xFFEF4444); return Card(elevation: 0, margin: const EdgeInsets.only(bottom: 9), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE5E1FF))), child: Padding(padding: const EdgeInsets.all(13), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Expanded(child: Text('${data['studentName'] ?? data['studentEmail'] ?? 'Student query'}', style: const TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w800))), _tag(shown, color)]), Text('${data['subject'] ?? 'Query'}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))), const SizedBox(height: 9), Text('${data['message'] ?? ''}', maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(0xFF475569))), const SizedBox(height: 10), Row(children: [_tag('${data['category'] ?? 'General'}', const Color(0xFF7C3AED)), const Spacer(), PopupMenuButton<String>(padding: EdgeInsets.zero, onSelected: (value) => FirestoreService.instance.updateDocument('student_queries', doc.id, {'status': value}), itemBuilder: (_) => const [PopupMenuItem(value: 'open', child: Text('Mark new')), PopupMenuItem(value: 'pending', child: Text('Mark pending')), PopupMenuItem(value: 'in progress', child: Text('Mark in progress')), PopupMenuItem(value: 'resolved', child: Text('Mark resolved'))])])]))); }
+  Widget _queryCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final status = '${data['status'] ?? 'open'}';
+    final shown = status == 'open' ? 'New' : status;
+    final color = status == 'resolved' ? const Color(0xFF16A34A) : status == 'in progress' ? const Color(0xFF7C3AED) : status == 'pending' ? const Color(0xFFF59E0B) : const Color(0xFFEF4444);
+    return Card(elevation: 0, margin: const EdgeInsets.only(bottom: 9), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE5E1FF))), child: Padding(padding: const EdgeInsets.all(13), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Expanded(child: Text('Student query', style: const TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w800))), _tag(shown, color)]), Text('${data['subject'] ?? 'Query'}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))), const SizedBox(height: 9), Text('${data['message'] ?? ''}', maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(0xFF475569))), const SizedBox(height: 10), Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminQueryDetailPage(queryId: doc.id))), icon: const Icon(Icons.open_in_new, size: 15), label: const Text('View details')))])));
+  }
   Widget _tag(String label, Color color) => Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(8)), child: Text(label, style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.w700)));
 }
 
 /// Mobile User Management screen matching the supplied Admin/Staff Figma frame.
 /// Its cards, counts, search, and role filters always read the Firestore users collection.
+class AdminQueryDetailPage extends StatefulWidget {
+  const AdminQueryDetailPage({super.key, required this.queryId});
+
+  final String queryId;
+
+  @override
+  State<AdminQueryDetailPage> createState() => _AdminQueryDetailPageState();
+}
+
+class _AdminQueryDetailPageState extends State<AdminQueryDetailPage> {
+  var _updating = false;
+
+  Future<void> _updateStatus(String status) async {
+    setState(() => _updating = true);
+    try {
+      await FirestoreService.instance.updateDocument(
+        'student_queries',
+        widget.queryId,
+        {'status': status},
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Query status updated.')),
+        );
+      }
+    } on FirebaseException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.code == 'permission-denied'
+                ? 'You do not have permission to update this query.'
+                : 'Could not update the query status.'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  String _statusLabel(String status) => status == 'open' ? 'New' : status;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: const Color(0xFFF9F9FF),
+        appBar: AppBar(
+          title: const Text('Query Detail'),
+          backgroundColor: const Color(0xFF4F46E5),
+          foregroundColor: Colors.white,
+        ),
+        body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('student_queries')
+              .doc(widget.queryId)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Unable to load this query.'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final document = snapshot.data!;
+            if (!document.exists || document.data() == null) {
+              return const Center(child: Text('This query is no longer available.'));
+            }
+            final data = document.data()!;
+            final status = '${data['status'] ?? 'open'}'.toLowerCase();
+            final createdAt = data['createdAt'];
+            final date = createdAt is Timestamp ? createdAt.toDate().toLocal().toString() : null;
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _card('Subject', '${data['subject'] ?? 'Untitled query'}'),
+                _card('Message', '${data['message'] ?? 'No message was provided.'}'),
+                _card('Student UID', '${data['studentUid'] ?? 'Not available'}'),
+                _card('Created', date ?? 'Not available'),
+                const SizedBox(height: 16),
+                const Text('Status', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF4F46E5))),
+                const SizedBox(height: 8),
+                if (_updating)
+                  const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                else
+                  DropdownButtonFormField<String>(
+                    value: const ['open', 'pending', 'in progress', 'resolved'].contains(status) ? status : 'open',
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    items: const ['open', 'pending', 'in progress', 'resolved']
+                        .map((item) => DropdownMenuItem(value: item, child: Text(item == 'open' ? 'New' : item)))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null && value != status) _updateStatus(value);
+                    },
+                  ),
+                const SizedBox(height: 8),
+                Text('Current status: ${_statusLabel(status)}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+              ],
+            );
+          },
+        ),
+      );
+
+  Widget _card(String label, String value) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E1FF))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))), const SizedBox(height: 7), SelectableText(value, style: const TextStyle(color: Color(0xFF1F2937), height: 1.45))]),
+      );
+}
+
+class AdminNotificationDetailPage extends StatelessWidget {
+  const AdminNotificationDetailPage({super.key, required this.notificationId});
+
+  final String notificationId;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: const Color(0xFFF9F9FF),
+        appBar: AppBar(title: const Text('Notification Detail'), backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+        body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('notifications').doc(notificationId).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return const Center(child: Text('Unable to load this notification.'));
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final document = snapshot.data!;
+            if (!document.exists || document.data() == null) return const Center(child: Text('This notification is no longer available.'));
+            final data = document.data()!;
+            final createdAt = data['createdAt'];
+            final date = createdAt is Timestamp ? createdAt.toDate().toLocal().toString() : null;
+            return ListView(padding: const EdgeInsets.all(16), children: [
+              _section('Title', '${data['title'] ?? 'Untitled notification'}'),
+              _section('Message', '${data['message'] ?? data['body'] ?? 'No message was provided.'}'),
+              if (data['category'] != null) _section('Category', '${data['category']}'),
+              if (date != null) _section('Created', date),
+            ]);
+          },
+        ),
+      );
+
+  Widget _section(String label, String value) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E1FF))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))), const SizedBox(height:7), SelectableText(value, style: const TextStyle(color: Color(0xFF1F2937), height: 1.45))]),
+      );
+}
+
 class AdminUsersFigmaPage extends StatefulWidget {
   const AdminUsersFigmaPage({super.key});
   @override
@@ -540,7 +755,7 @@ class _AdminAnnouncementsFigmaPageState extends State<AdminAnnouncementsFigmaPag
       margin: const EdgeInsets.only(bottom: 9),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE5E1FF))),
       child: InkWell(
-        onTap: () => _editor(doc: doc),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminAnnouncementDetailPage(announcementId: doc.id))),
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.all(13),
@@ -548,6 +763,7 @@ class _AdminAnnouncementsFigmaPageState extends State<AdminAnnouncementsFigmaPag
             Row(children: [
               Expanded(child: Text('${data['title'] ?? 'Untitled announcement'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Color(0xFF4F46E5), fontWeight: FontWeight.w800))),
               _tag(status, statusColor),
+              IconButton(tooltip: 'Edit announcement', onPressed: () => _editor(doc: doc), icon: const Icon(Icons.edit_outlined, size: 18)),
             ]),
             const SizedBox(height: 8),
             Wrap(spacing: 6, children: [
@@ -573,7 +789,8 @@ class _AdminAnnouncementsFigmaPageState extends State<AdminAnnouncementsFigmaPag
     final message = TextEditingController(text: '${data['message'] ?? ''}');
     var category = _normalCategory('${data['category'] ?? 'General'}');
     category = categories.firstWhere((item) => _normalCategory(item) == category, orElse: () => 'General');
-    final save = await showDialog<bool>(
+    var saving = false;
+    await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
@@ -585,17 +802,136 @@ class _AdminAnnouncementsFigmaPageState extends State<AdminAnnouncementsFigmaPag
             const SizedBox(height: 12),
             TextField(controller: message, minLines: 3, maxLines: 5, decoration: const InputDecoration(labelText: 'Message')),
           ])),
-          actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save'))],
+          actions: [
+            TextButton(onPressed: saving ? null : () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: saving ? null : () async {
+                if (title.text.trim().isEmpty || message.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a title and message before saving.')));
+                  return;
+                }
+                setDialogState(() => saving = true);
+                try {
+                  final value = {'title': title.text.trim(), 'message': message.text.trim(), 'category': category};
+                  if (doc == null) {
+                    await FirestoreService.instance.createDocument('announcements', value);
+                  } else {
+                    await FirestoreService.instance.updateDocument('announcements', doc.id, value);
+                  }
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Announcement saved.')));
+                } on FirebaseException catch (error) {
+                  if (dialogContext.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.code == 'permission-denied' ? 'You do not have permission to save this announcement.' : 'Could not save the announcement. Please try again.'), backgroundColor: Colors.red.shade700));
+                    setDialogState(() => saving = false);
+                  }
+                } catch (_) {
+                  if (dialogContext.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Could not save the announcement. Please try again.'), backgroundColor: Colors.red.shade700));
+                    setDialogState(() => saving = false);
+                  }
+                }
+              },
+              child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Save'),
+            ),
+          ],
         ),
       ),
     );
-    if (save == true && title.text.trim().isNotEmpty && message.text.trim().isNotEmpty) {
-      final value = {'title': title.text.trim(), 'message': message.text.trim(), 'category': category, 'status': data['status'] ?? 'published', 'priority': data['priority'] ?? 'Normal'};
-      if (doc == null) { await FirestoreService.instance.createDocument('announcements', value); } else { await FirestoreService.instance.updateDocument('announcements', doc.id, value); }
-    }
     title.dispose();
     message.dispose();
   }
+}
+
+class AdminAnnouncementDetailPage extends StatefulWidget {
+  const AdminAnnouncementDetailPage({super.key, required this.announcementId});
+
+  final String announcementId;
+
+  @override
+  State<AdminAnnouncementDetailPage> createState() => _AdminAnnouncementDetailPageState();
+}
+
+class _AdminAnnouncementDetailPageState extends State<AdminAnnouncementDetailPage> {
+  var _savingStatus = false;
+  var _deleting = false;
+
+  Future<void> _updateStatus(String status) async {
+    setState(() => _savingStatus = true);
+    try {
+      await FirestoreService.instance.updateDocument('announcements', widget.announcementId, {'status': status});
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Announcement status updated.')));
+    } on FirebaseException catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.code == 'permission-denied' ? 'You do not have permission to update this announcement.' : 'Could not update the announcement status.'), backgroundColor: Colors.red.shade700));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Could not update the announcement status.'), backgroundColor: Colors.red.shade700));
+    } finally {
+      if (mounted) setState(() => _savingStatus = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(title: const Text('Delete announcement?'), content: const Text('This removes the Firestore announcement. Uploaded attachments are not deleted from Storage.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Delete'))]));
+    if (confirmed != true || !mounted) return;
+    setState(() => _deleting = true);
+    try {
+      await FirestoreService.instance.deleteDocument('announcements', widget.announcementId);
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Announcement deleted.')));
+    } on FirebaseException catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.code == 'permission-denied' ? 'You do not have permission to delete this announcement.' : 'Could not delete the announcement.'), backgroundColor: Colors.red.shade700));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Could not delete the announcement.'), backgroundColor: Colors.red.shade700));
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: const Color(0xFFF9F9FF),
+        appBar: AppBar(title: const Text('Announcement Detail'), backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white, actions: [IconButton(tooltip: 'Delete announcement', onPressed: _deleting || _savingStatus ? null : _delete, icon: _deleting ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.delete_outline))]),
+        body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('announcements').doc(widget.announcementId).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return const Center(child: Text('Unable to load this announcement.'));
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final document = snapshot.data!;
+            if (!document.exists || document.data() == null) return const Center(child: Text('This announcement is no longer available.'));
+            final data = document.data()!;
+            final status = '${data['status'] ?? 'published'}'.toLowerCase();
+            final createdAt = data['createdAt'];
+            final date = createdAt is Timestamp ? createdAt.toDate().toLocal().toString() : null;
+            final posterUrl = data['posterUrl'] as String?;
+            final attachmentUrl = data['attachmentUrl'] as String?;
+            return ListView(padding: const EdgeInsets.all(16), children: [
+              if (posterUrl != null && Uri.tryParse(posterUrl)?.hasScheme == true)
+                ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.network(posterUrl, height: 190, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink())),
+              if (posterUrl != null) const SizedBox(height: 14),
+              _section('Title', '${data['title'] ?? data['subject'] ?? 'Untitled announcement'}'),
+              _section('Message', '${data['message'] ?? data['description'] ?? data['body'] ?? 'No message was provided.'}'),
+              const Text('STATUS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+              const SizedBox(height: 7),
+              if (_savingStatus) const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator())) else DropdownButtonFormField<String>(value: const ['published', 'scheduled', 'draft', 'archived'].contains(status) ? status : 'published', decoration: const InputDecoration(border: OutlineInputBorder()), items: const ['published', 'scheduled', 'draft', 'archived'].map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(), onChanged: _deleting ? null : (value) { if (value != null && value != status) _updateStatus(value); }),
+              const SizedBox(height: 12),
+              if (data['category'] != null) _section('Category', '${data['category']}'),
+              if (data['department'] != null) _section('Department', '${data['department']}'),
+              if (data['postedBy'] != null) _section('Posted by', '${data['postedBy']}'),
+              if (data['priority'] != null) _section('Priority', '${data['priority']}'),
+              if (date != null) _section('Created', date),
+              if (attachmentUrl != null) _section('Attachment URL', attachmentUrl),
+            ]);
+          },
+        ),
+      );
+
+  Widget _section(String label, String value) => Container(
+        margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E1FF))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))), const SizedBox(height: 7), SelectableText(value, style: const TextStyle(color: Color(0xFF1F2937), height: 1.45))]),
+      );
 }
 
 class _AdminNotificationsFigmaPageState extends State<AdminNotificationsFigmaPage> {
@@ -662,7 +998,7 @@ class _AdminNotificationsFigmaPageState extends State<AdminNotificationsFigmaPag
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE5E1FF))),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => _details(data),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminNotificationDetailPage(notificationId: doc.id))),
         child: Padding(
           padding: const EdgeInsets.all(13),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -686,11 +1022,11 @@ class _AdminNotificationsFigmaPageState extends State<AdminNotificationsFigmaPag
       ),
     );
   }
-  void _details(Map<String, dynamic> data) => showDialog<void>(context: context, builder: (_) => AlertDialog(title: Text('${data['title'] ?? 'Notification'}'), content: Text('${data['message'] ?? 'No message'}'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))]));
 }
 
 class _AdminUsersFigmaPageState extends State<AdminUsersFigmaPage> {
   final _search = TextEditingController();
+  final _activeUpdates = <String>{};
   String _role = 'All Roles';
 
   @override
@@ -710,8 +1046,7 @@ class _AdminUsersFigmaPageState extends State<AdminUsersFigmaPage> {
       final query = _search.text.trim().toLowerCase();
       final filtered = users.where((doc) {
         final data = doc.data();
-        final role = '${data['role'] ?? ''}'.toLowerCase();
-        final roleMatches = _role == 'All Roles' || role == _role.toLowerCase();
+        final roleMatches = _role == 'All Roles' || _matchesRole('${data['role'] ?? ''}', _role);
         final text = '${data['name'] ?? ''} ${data['email'] ?? ''}'.toLowerCase();
         return roleMatches && text.contains(query);
       }).toList();
@@ -746,45 +1081,94 @@ class _AdminUsersFigmaPageState extends State<AdminUsersFigmaPage> {
   );
 
   Widget _metric(String value, String label, Color color) => Expanded(child: Container(height: 64, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE5E1FF))), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(value, style: TextStyle(color: color, fontSize: 21, fontWeight: FontWeight.w800)), Text(label, style: const TextStyle(fontSize: 9, color: Color(0xFF64748B)))])));
+  bool _matchesRole(String storedRole, String filter) {
+    final value = storedRole.trim().toLowerCase();
+    return switch (filter) {
+      'Super' => ['super', 'super admin', 'superadmin', 'super_admin'].contains(value),
+      'Admin' => value == 'admin',
+      'Staff' => value == 'staff',
+      'Student' => value == 'student',
+      _ => false,
+    };
+  }
   Widget _roleChip(String role) => Padding(padding: const EdgeInsets.only(right: 7), child: ChoiceChip(label: Text(role, style: const TextStyle(fontSize: 10)), selected: _role == role, onSelected: (_) => setState(() => _role = role), selectedColor: const Color(0xFF4F46E5), labelStyle: TextStyle(color: _role == role ? Colors.white : const Color(0xFF64748B), fontWeight: FontWeight.w700), side: const BorderSide(color: Color(0xFFDDD6FE)), visualDensity: VisualDensity.compact));
-  Widget _userCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) { final data = doc.data(); final name = '${data['name'] ?? 'Unnamed user'}'; final email = '${data['email'] ?? ''}'; final role = '${data['role'] ?? 'User'}'; final department = '${data['department'] ?? ''}'; final active = data['active'] != false; return Card(elevation: 0, margin: const EdgeInsets.only(bottom: 9), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE5E1FF))), child: Padding(padding: const EdgeInsets.all(12), child: Column(children: [Row(children: [CircleAvatar(backgroundColor: const Color(0xFF7C3AED), child: Text(name.substring(0, 1).toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800))), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w800)), Text(email, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)))])), Icon(Icons.circle, size: 10, color: active ? const Color(0xFF16A34A) : const Color(0xFF94A3B8))]), const SizedBox(height: 10), Row(children: [_badge(role), if (department.isNotEmpty) ...[const SizedBox(width: 6), _badge(department)]]), const Divider(height: 20), Row(children: [const Text('Last login: —', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))), const Spacer(), TextButton(onPressed: () => _editUser(doc), child: const Text('Edit', style: TextStyle(fontSize: 10))), const VerticalDivider(width: 1), TextButton(onPressed: () => _permissions(name), child: const Text('Permissions', style: TextStyle(fontSize: 10))), const VerticalDivider(width: 1), TextButton(onPressed: () => FirestoreService.instance.updateDocument('users', doc.id, {'active': !active}), child: Text(active ? 'Deactivate' : 'Activate', style: TextStyle(fontSize: 10, color: active ? Colors.red : Colors.green)))])]))); }
+  Widget _userCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) { final data = doc.data(); final name = '${data['name'] ?? 'Unnamed user'}'; final email = '${data['email'] ?? ''}'; final role = '${data['role'] ?? 'User'}'; final department = '${data['department'] ?? ''}'; final active = data['active'] != false; return Card(elevation: 0, margin: const EdgeInsets.only(bottom: 9), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE5E1FF))), child: Padding(padding: const EdgeInsets.all(12), child: Column(children: [Row(children: [CircleAvatar(backgroundColor: const Color(0xFF7C3AED), child: Text(name.substring(0, 1).toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800))), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w800)), Text(email, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)))])), Icon(Icons.circle, size: 10, color: active ? const Color(0xFF16A34A) : const Color(0xFF94A3B8))]), const SizedBox(height: 10), Row(children: [_badge(role), if (department.isNotEmpty) ...[const SizedBox(width: 6), _badge(department)]]), const Divider(height: 20), Row(children: [const Text('Last login: —', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))), const Spacer(), TextButton(onPressed: () => _editUser(doc), child: const Text('Edit', style: TextStyle(fontSize: 10))), const VerticalDivider(width: 1), TextButton(onPressed: () => _permissions(name), child: const Text('Permissions', style: TextStyle(fontSize: 10))), const VerticalDivider(width: 1), TextButton(onPressed: () => _toggleActive(doc, active), child: Text(active ? 'Deactivate' : 'Activate', style: TextStyle(fontSize: 10, color: active ? Colors.red : Colors.green)))])]))); }
+  Future<void> _toggleActive(QueryDocumentSnapshot<Map<String, dynamic>> doc, bool active) async {
+    final action = active ? 'deactivate' : 'activate';
+    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(title: Text('${active ? 'Deactivate' : 'Activate'} user?'), content: Text('This updates the existing active state for this user profile.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(action))]));
+    if (confirmed != true) return;
+    setState(() => _activeUpdates.add(doc.id));
+    try {
+      await FirestoreService.instance.updateDocument('users', doc.id, {'active': !active});
+      if (mounted) _snack('User ${active ? 'deactivated' : 'activated'}.');
+    } on FirebaseException catch (error) {
+      if (mounted) _snack(error.code == 'permission-denied' ? 'You do not have permission to update this user.' : 'Could not update this user.', error: true);
+    } finally {
+      if (mounted) setState(() => _activeUpdates.remove(doc.id));
+    }
+  }
   Widget _badge(String label) => Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(color: const Color(0xFFF0EDFF), borderRadius: BorderRadius.circular(99)), child: Text(label, style: const TextStyle(fontSize: 9, color: Color(0xFF6D28D9), fontWeight: FontWeight.w700)));
   Future<void> _permissions(String name) => showDialog<void>(context: context, builder: (_) => AlertDialog(title: Text('$name permissions'), content: const Text('Permissions are based on the role stored in this user’s Firestore profile.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))]));
-  Future<void> _addUser() => _userEditor();
-  Future<void> _editUser(QueryDocumentSnapshot<Map<String, dynamic>> doc) => _userEditor(doc: doc);
-  Future<void> _userEditor({QueryDocumentSnapshot<Map<String, dynamic>>? doc}) async {
-    final data = doc?.data() ?? <String, dynamic>{};
+  Future<void> _addUser() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('User creation requires setup'),
+        content: const Text(
+          'Creating a Firestore profile alone does not create a Firebase '
+          'Authentication account. User creation is unavailable until an '
+          'approved account-provisioning workflow is configured.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+  Future<void> _editUser(QueryDocumentSnapshot<Map<String, dynamic>> doc) => _userEditor(doc);
+  Future<void> _userEditor(QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
+    final data = doc.data();
     final name = TextEditingController(text: '${data['name'] ?? ''}');
-    final email = TextEditingController(text: '${data['email'] ?? ''}');
-    final role = TextEditingController(text: '${data['role'] ?? ''}');
+    final email = '${data['email'] ?? ''}';
+    var role = _canonicalRole('${data['role'] ?? ''}');
     final save = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(doc == null ? 'Add User' : 'Edit User'),
-        content: Column(
+        title: const Text('Edit User'),
+        content: StatefulBuilder(builder: (context, setDialogState) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-            TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
-            TextField(controller: role, decoration: const InputDecoration(labelText: 'Role')),
+            InputDecorator(decoration: const InputDecoration(labelText: 'Email'), child: Text(email.isEmpty ? 'Not available' : email)),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(value: role, decoration: const InputDecoration(labelText: 'Role'), items: const ['student', 'staff', 'admin', 'super_admin'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setDialogState(() => role = value ?? role)),
+            const SizedBox(height: 8),
+            const Text('Email is managed by Firebase Authentication and is read-only here.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
           ],
-        ),
+        )),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
           FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
         ],
       ),
     );
-    if (save == true && name.text.trim().isNotEmpty && email.text.trim().isNotEmpty) {
-      final value = {'name': name.text.trim(), 'email': email.text.trim(), 'role': role.text.trim(), 'active': doc?.data()['active'] ?? true};
-      if (doc == null) {
-        await FirestoreService.instance.createDocument('users', value);
-      } else {
-        await FirestoreService.instance.updateDocument('users', doc.id, value);
+    if (save == true && name.text.trim().isNotEmpty) {
+      try {
+        await FirestoreService.instance.updateDocument('users', doc.id, {'name': name.text.trim(), 'role': role});
+        if (mounted) _snack('User profile saved.');
+      } on FirebaseException catch (error) {
+        if (mounted) _snack(error.code == 'permission-denied' ? 'You do not have permission to edit this user.' : 'Could not save this user.', error: true);
       }
     }
     name.dispose();
-    email.dispose();
-    role.dispose();
   }
+  String _canonicalRole(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (['super', 'super admin', 'superadmin', 'super_admin'].contains(normalized)) return 'super_admin';
+    return ['student', 'staff', 'admin'].contains(normalized) ? normalized : 'student';
+  }
+  void _snack(String message, {bool error = false}) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700));
 }

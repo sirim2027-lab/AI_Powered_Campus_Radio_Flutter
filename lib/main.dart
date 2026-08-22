@@ -5,11 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'app.dart';
 import 'core/routes/app_routes.dart';
+import 'core/services/auth_service.dart';
 import 'firebase_options.dart';
 import 'admin/admin_management_pages.dart';
 import 'models/app_user.dart';
 import 'services/firestore_service.dart';
-import 'services/user_role_service.dart';
+import 'features/auth/screens/forgot_password_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,23 +19,31 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const CampusRadioApp(loginBuilder: _staffLoginBuilder));
+  runApp(
+    const CampusRadioApp(
+      loginBuilder: _loginBuilder,
+      adminBuilder: _adminBuilder,
+    ),
+  );
 }
 
-Widget _staffLoginBuilder(BuildContext context) => const StaffLoginPage();
+Widget _loginBuilder(BuildContext context) => const CampusLoginPage();
+
+Widget _adminBuilder(AppUser profile, {int initialIndex = 0}) =>
+    AdminDashboard(role: profile.roleLabel, initialIndex: initialIndex);
 
 // ============================================================
 // LOGIN PAGE
 // ============================================================
 
-class StaffLoginPage extends StatefulWidget {
-  const StaffLoginPage({super.key});
+class CampusLoginPage extends StatefulWidget {
+  const CampusLoginPage({super.key});
 
   @override
-  State<StaffLoginPage> createState() => _StaffLoginPageState();
+  State<CampusLoginPage> createState() => _CampusLoginPageState();
 }
 
-class _StaffLoginPageState extends State<StaffLoginPage> {
+class _CampusLoginPageState extends State<CampusLoginPage> {
   bool rememberMe = false;
   bool obscurePassword = true;
   bool isLoading = false;
@@ -82,7 +91,7 @@ class _StaffLoginPageState extends State<StaffLoginPage> {
     });
 
     try {
-      final profile = await UserRoleService.instance.signInAndLoadProfile(
+      final profile = await AuthService.instance.signIn(
         email: email,
         password: password,
       );
@@ -173,9 +182,7 @@ class _StaffLoginPageState extends State<StaffLoginPage> {
     }
 
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: email,
-      );
+      await AuthService.instance.sendPasswordResetEmail(email);
 
       _showMessage(
         'Password reset email sent.',
@@ -425,7 +432,7 @@ class _StaffLoginPageState extends State<StaffLoginPage> {
                 ),
                 const Spacer(),
                 TextButton(
-                  onPressed: isLoading ? null : _forgotPassword,
+                  onPressed: isLoading ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
                   child: const Text(
                     'Forgot Password?',
                     style: TextStyle(
@@ -462,23 +469,12 @@ class _StaffLoginPageState extends State<StaffLoginPage> {
                         ),
                       )
                     : const Text(
-                        'Login to Admin Portal',
+                        'Login',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-              ),
-            ),
-
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton.icon(
-                onPressed: isLoading
-                    ? null
-                    : () => Navigator.of(context).pushNamed(AppRoutes.studentLogin),
-                icon: const Icon(Icons.school_outlined, size: 16),
-                label: const Text('Student? Sign in to the Student Portal'),
               ),
             ),
 
@@ -556,10 +552,12 @@ class _StaffLoginPageState extends State<StaffLoginPage> {
 
 class AdminDashboard extends StatefulWidget {
   final String role;
+  final int initialIndex;
 
   const AdminDashboard({
     super.key,
     required this.role,
+    this.initialIndex = 0,
   });
 
   @override
@@ -568,10 +566,14 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int selectedIndex = 0;
-  bool get _isDesktop => MediaQuery.sizeOf(context).width >= 760;
-  bool _desktopAlerts = true;
-  bool _compactTables = false;
 
+  @override
+  void initState() {
+    super.initState();
+    selectedIndex = widget.initialIndex;
+  }
+
+  bool get _isDesktop => MediaQuery.sizeOf(context).width >= 760;
   final List<String> menuItems = [
     'Dashboard',
     'Announcements',
@@ -674,10 +676,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
               children: [
                 _quickFigmaAction('Create\nAnnouncement', Icons.edit_outlined, 1),
                 _quickFigmaAction('View Queries', Icons.forum_outlined, 2),
-                _quickFigmaAction('Analytics', Icons.bar_chart_outlined, 0),
-                _quickFigmaAction('IoT Devices', Icons.sensors_outlined, 0),
+                _quickFigmaAction('Analytics', Icons.bar_chart_outlined, null, unavailableMessage: 'Analytics unavailable: no analytics data source is configured.'),
+                _quickFigmaAction('IoT Devices', Icons.sensors_outlined, null, unavailableMessage: 'Endpoint management unavailable: no endpoint/device backend is configured.'),
                 _quickFigmaAction('User\nManagement', Icons.people_outline, 5),
-                _quickFigmaAction('System\nStatus', Icons.monitor_outlined, 9),
+                _quickFigmaAction('System\nStatus', Icons.monitor_outlined, null, unavailableMessage: 'System monitoring unavailable: no monitoring backend is configured.'),
               ],
             ),
             const SizedBox(height: 12),
@@ -718,7 +720,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           const Text('Good Evening 👋', style: TextStyle(fontSize: 11, color: Color(0xFFBFDBFE))),
           Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${widget.role} Administrator', style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(color: const Color(0x337C3AED), borderRadius: BorderRadius.circular(8)), child: Text(widget.role, style: const TextStyle(fontSize: 9, color: Color(0xFFE9D5FF), fontWeight: FontWeight.w700))), const SizedBox(width: 8), const Text('Administration', style: TextStyle(fontSize: 10, color: Color(0xFFBFDBFE)))])])), Container(width: 45, height: 45, decoration: BoxDecoration(color: const Color(0x337C3AED), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: Text(widget.role.substring(0, 1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)))]),
           const SizedBox(height: 12),
-          Row(children: [Text(_dateLabel(), style: const TextStyle(fontSize: 10, color: Color(0xFFBFDBFE))), const Spacer(), const Text('● 24/28 IoT Online', style: TextStyle(fontSize: 10, color: Color(0xFF86EFAC), fontWeight: FontWeight.w700))]),
+          Row(children: [Text(_dateLabel(), style: const TextStyle(fontSize: 10, color: Color(0xFFBFDBFE))), const Spacer(), const Text('Endpoint backend unavailable', style: TextStyle(fontSize: 10, color: Color(0xFFFDE68A), fontWeight: FontWeight.w700))]),
         ]),
       );
 
@@ -728,8 +730,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
   }
-
-  Widget _miniAction(String label, IconData icon, int? destination) => Expanded(child: InkWell(onTap: destination == null ? null : () => setState(() => selectedIndex = destination), borderRadius: BorderRadius.circular(11), child: Container(height: 57, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFE5E1FF))), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 17, color: const Color(0xFF4F46E5)), Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, color: Color(0xFF4F46E5), fontWeight: FontWeight.w700))]))));
 
   Widget _figmaAnnouncementStats() => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirestoreService.instance.collection('announcements'),
@@ -757,36 +757,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
       );
 
   Widget _queryMetric(String value, String label, Color color) => Expanded(child: Container(height: 66, decoration: BoxDecoration(color: const Color(0xFFFAFAFF), borderRadius: BorderRadius.circular(10)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(value, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: color)), Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, color: Color(0xFF64748B)))])));
-  Widget _quickFigmaAction(String label, IconData icon, int destination) => InkWell(onTap: () => setState(() => selectedIndex = destination), borderRadius: BorderRadius.circular(13), child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(13), border: Border.all(color: const Color(0xFFE5E1FF))), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: const Color(0xFF7C3AED)), const SizedBox(height: 7), Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: Color(0xFF4F46E5), fontWeight: FontWeight.w700))])));
+  Widget _quickFigmaAction(String label, IconData icon, int? destination, {String? unavailableMessage}) => InkWell(onTap: () { if (destination != null) { setState(() => selectedIndex = destination); } else if (unavailableMessage != null) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(unavailableMessage))); } }, borderRadius: BorderRadius.circular(13), child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(13), border: Border.all(color: const Color(0xFFE5E1FF))), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: destination == null ? const Color(0xFF94A3B8) : const Color(0xFF7C3AED)), const SizedBox(height: 7), Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: destination == null ? const Color(0xFF64748B) : const Color(0xFF4F46E5), fontWeight: FontWeight.w700))])));
 
   Widget _weeklyActivity() => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E1FF))),
-        child: StreamBuilder<int>(
-          stream: FirestoreService.instance.count('announcements'),
-          builder: (_, snapshot) {
-            final total = snapshot.data ?? 0;
-            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('This Week', style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w800)), Text('Announcement activity', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8)))]), const Spacer(), Text('$total', style: const TextStyle(color: Color(0xFF7C3AED), fontSize: 22, fontWeight: FontWeight.w800))]),
-              const SizedBox(height: 14),
-              Row(crossAxisAlignment: CrossAxisAlignment.end, children: List.generate(7, (i) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: Column(children: [Container(height: 8.0 + ((total + i * 3) % 30), decoration: BoxDecoration(color: i == 2 ? const Color(0xFF7C3AED) : const Color(0xFFE5E1FF), borderRadius: BorderRadius.circular(5))), const SizedBox(height: 4), Text(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i], style: const TextStyle(fontSize: 8, color: Color(0xFF94A3B8)))]))))),
-            ]);
-          },
-        ),
+        child: const Row(children: [Icon(Icons.bar_chart_outlined, color: Color(0xFF94A3B8)), SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Analytics unavailable', style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w800)), SizedBox(height: 3), Text('A time-series analytics data source is not configured yet.', style: TextStyle(fontSize: 10, color: Color(0xFF64748B)))]))]),
       );
 
   Widget _mobileRecentAnnouncements() => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirestoreService.instance.collection('announcements'),
         builder: (_, snapshot) {
+          if (snapshot.hasError) return const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('Recent announcements are unavailable.', style: TextStyle(color: Color(0xFF94A3B8)))));
           if (!snapshot.hasData) return const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()));
           final docs = snapshot.data!.docs.take(4).toList();
           if (docs.isEmpty) return const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No announcements created yet.', style: TextStyle(color: Color(0xFF94A3B8)))));
-          return Column(children: docs.map((doc) { final data = doc.data(); return Card(elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E1FF))), child: ListTile(onTap: () => setState(() => selectedIndex = 1), dense: true, title: Text('${data['title'] ?? 'Untitled announcement'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Color(0xFF4F46E5), fontWeight: FontWeight.w800)), subtitle: Wrap(spacing: 5, children: [_tinyChip('${data['category'] ?? 'General'}', const Color(0xFF7C3AED)), _tinyChip('${data['priority'] ?? 'Normal'}', const Color(0xFFF59E0B))]), trailing: const Text('Published', style: TextStyle(fontSize: 9, color: Color(0xFF16A34A), fontWeight: FontWeight.w700)))); }).toList());
+          return Column(children: docs.map((doc) { final data = doc.data(); final status = '${data['status'] ?? 'published'}'; return Card(elevation: 0, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E1FF))), child: ListTile(onTap: () => setState(() => selectedIndex = 1), dense: true, title: Text('${data['title'] ?? 'Untitled announcement'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Color(0xFF4F46E5), fontWeight: FontWeight.w800)), subtitle: Wrap(spacing: 5, children: [_tinyChip('${data['category'] ?? 'General'}', const Color(0xFF7C3AED)), _tinyChip('${data['priority'] ?? 'Normal'}', const Color(0xFFF59E0B))]), trailing: Text(status, style: const TextStyle(fontSize: 9, color: Color(0xFF16A34A), fontWeight: FontWeight.w700)))); }).toList());
         },
       );
 
   Widget _tinyChip(String label, Color color) => Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(8)), child: Text(label, style: TextStyle(fontSize: 8, color: color, fontWeight: FontWeight.w700)));
-  Widget _mobileSystemStatus() => Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E1FF))), child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('System Status', style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w800)), SizedBox(height: 10), Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [Text('● Backend\nOperational', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, color: Color(0xFF16A34A))), Text('● Firestore\nOperational', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, color: Color(0xFF16A34A))), Text('● Notifications\nReady', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, color: Color(0xFFF59E0B)))]) ]));
+  Widget _mobileSystemStatus() => Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E1FF))), child: const Row(children: [Icon(Icons.monitor_heart_outlined, color: Color(0xFF94A3B8)), SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('System monitoring unavailable', style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w800)), SizedBox(height: 3), Text('No backend health or notification-delivery monitoring source is configured.', style: TextStyle(fontSize: 10, color: Color(0xFF64748B)))]))]));
 
   // ============================================================
   // SIDEBAR
@@ -996,9 +987,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           const Spacer(),
 
           IconButton(
-            tooltip: 'Search live campus data',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const StudentSearchPage(title: 'Search campus data')),
+            tooltip: 'Admin search unavailable',
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Admin-wide search is unavailable: no Admin search workflow is configured.')),
             ),
             icon: Icon(
               Icons.search,
@@ -1201,11 +1192,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xFFE4E3F2))),
               child: Column(children: [
-                const ListTile(title: Text('Admin settings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)), subtitle: Text('Choose how this administration workspace behaves.')),
+                const ListTile(title: Text('Admin settings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)), subtitle: Text('Preferences are not persisted in the current backend.')),
                 const Divider(height: 1),
-                SwitchListTile(value: _desktopAlerts, onChanged: (value) => setState(() => _desktopAlerts = value), secondary: const Icon(Icons.notifications_active_outlined), title: const Text('Desktop notifications'), subtitle: const Text('Show in-app alerts for new activity.')),
-                SwitchListTile(value: _compactTables, onChanged: (value) => setState(() => _compactTables = value), secondary: const Icon(Icons.view_compact_outlined), title: const Text('Compact data tables'), subtitle: const Text('Use a denser layout in management pages.')),
-                const ListTile(leading: Icon(Icons.security_outlined), title: Text('Security'), subtitle: Text('Authentication and roles are managed by Firebase Authentication and Firestore.')),
+                const SwitchListTile(value: false, onChanged: null, secondary: Icon(Icons.notifications_active_outlined), title: Text('Desktop notifications'), subtitle: Text('Unavailable: no persisted alert-preference or delivery backend is configured.')),
+                const SwitchListTile(value: false, onChanged: null, secondary: Icon(Icons.view_compact_outlined), title: Text('Compact data tables'), subtitle: Text('Unavailable: this display preference is not implemented or persisted.')),
+                const ListTile(leading: Icon(Icons.security_outlined), title: Text('Security'), subtitle: Text('Authentication and roles are managed by Firebase Authentication and Firestore. Advanced privacy controls are not configured.')),
               ]),
             ),
           ),
@@ -1508,7 +1499,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // ============================================================
 
   Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
+    await AuthService.instance.signOut();
 
     if (!mounted) return;
 

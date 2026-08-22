@@ -1,0 +1,2 @@
+import 'package:flutter/material.dart';
+class StudentVoiceDetailScreen extends StatelessWidget{const StudentVoiceDetailScreen({super.key});@override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(backgroundColor:const Color(0xFF312E81),foregroundColor:Colors.white,title:const Text('Submission Detail')),body:const Center(child:Padding(padding:EdgeInsets.all(32),child:Text('Student Voice detail cannot be shown until approved submission data is available.',textAlign:TextAlign.center,style:TextStyle(color:Color(0xFF6B7280))))));}
