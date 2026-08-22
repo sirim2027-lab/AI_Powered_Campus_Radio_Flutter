@@ -88,7 +88,7 @@ class StudentAnnouncementDetailScreen extends StatelessWidget {
                     'Message',
                     [
                       Text(
-                        announcement.message,
+                        announcement.summary,
                         style: const TextStyle(
                           color: Color(0xFF374151),
                           height: 1.6,
