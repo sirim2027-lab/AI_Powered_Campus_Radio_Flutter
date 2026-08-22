@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "839908546527",
+    "project_id": "ai-powered-campus-radio",
+    "storage_bucket": "ai-powered-campus-radio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:839908546527:android:281138e696ab734644166a",
+        "android_client_info": {
+          "package_name": "com.example.my_first_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwqsmQ089y2ZKYDZjs01emoBP1nriIQMQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

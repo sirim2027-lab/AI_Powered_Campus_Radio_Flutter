@@ -1,0 +1,31 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "ai-powered-campus-radio",
+          "appId": "1:839908546527:android:281138e696ab734644166a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "ai-powered-campus-radio",
+          "configurations": {
+            "android": "1:839908546527:android:281138e696ab734644166a",
+            "ios": "1:839908546527:ios:553bd869be7584a544166a",
+            "macos": "1:839908546527:ios:553bd869be7584a544166a",
+            "web": "1:839908546527:web:d395395dffc4ba5644166a",
+            "windows": "1:839908546527:web:fb81f3110270c80e44166a"
+          }
+        }
+      }
+    }
+  }
+}

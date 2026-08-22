@@ -1,0 +1,25 @@
+abstract final class AppRoutes {
+  static const login = '/login';
+  static const studentLogin = '/student/login';
+  static const forgotPassword = '/forgot-password';
+  static const student = '/student';
+  static const admin = '/admin';
+  static const studentAnnouncements = '/student/announcements';
+  static const studentRadio = '/student/radio';
+  static const studentDepartments = '/student/departments';
+  static const studentQueries = '/student/queries';
+  static const studentNotifications = '/student/notifications';
+  static const studentProfile = '/student/profile';
+  static const studentSettings = '/student/settings';
+  static const studentVoice = '/student/voice';
+  static const adminAnnouncements = '/admin/announcements';
+  static const adminRadio = '/admin/radio';
+  static const adminDepartments = '/admin/departments';
+  static const adminQueries = '/admin/queries';
+  static const adminNotifications = '/admin/notifications';
+  static const adminUsers = '/admin/users';
+  static const adminAnalytics = '/admin/analytics';
+  static const adminBroadcast = '/admin/broadcast';
+  static const adminDevices = '/admin/devices';
+  static const adminSettings = '/admin/settings';
+}
