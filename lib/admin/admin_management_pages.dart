@@ -75,6 +75,60 @@ class AdminCollectionPage extends StatelessWidget {
     final heading = fields.isEmpty ? document.id : '${data[fields.first.key] ?? 'Untitled'}';
     final details = fields.skip(1).map((field) => data[field.key]).whereType<Object>().map((value) => '$value').where((value) => value.isNotEmpty).join(' • ');
     final poster = data['posterBytes'] as String?;
+
+    Widget statusWidget = const SizedBox();
+    if (collection == 'classrooms') {
+      final lastActive = data['lastActive'] as int?;
+      bool isOnline = false;
+      if (lastActive != null) {
+        final nowEpoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        isOnline = (nowEpoch - lastActive).abs() < 20;
+      }
+      statusWidget = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isOnline ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: isOnline ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              isOnline ? 'Online' : 'Offline',
+              style: TextStyle(
+                color: isOnline ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final trailingWidget = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (collection == 'classrooms') ...[
+          statusWidget,
+          const SizedBox(width: 10),
+        ],
+        if (!readOnly) ...[
+          IconButton(tooltip: 'Edit', onPressed: () => _edit(context, document: document), icon: const Icon(Icons.edit_outlined)),
+          IconButton(tooltip: 'Delete', onPressed: () => _delete(context, document), icon: const Icon(Icons.delete_outline, color: Colors.redAccent)),
+        ],
+      ],
+    );
+
     return Card(
       elevation: 0,
       child: ListTile(
@@ -85,7 +139,7 @@ class AdminCollectionPage extends StatelessWidget {
             : ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.memory(base64Decode(poster), width: 52, height: 52, fit: BoxFit.cover)),
         title: Text(heading, style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: details.isEmpty ? null : Padding(padding: const EdgeInsets.only(top: 5), child: Text(details, maxLines: 2, overflow: TextOverflow.ellipsis)),
-        trailing: readOnly ? null : Wrap(children: [IconButton(tooltip: 'Edit', onPressed: () => _edit(context, document: document), icon: const Icon(Icons.edit_outlined)), IconButton(tooltip: 'Delete', onPressed: () => _delete(context, document), icon: const Icon(Icons.delete_outline, color: Colors.redAccent))]),
+        trailing: trailingWidget,
       ),
     );
   }
@@ -604,6 +658,8 @@ class _AnnouncementContentPageState extends State<AnnouncementContentPage> {
   Uint8List? _attachmentBytes;
   String? _attachmentName;
   String? _attachmentType;
+  List<String> _selectedClassrooms = [];
+  bool _isSaving = false;
   @override
   void initState() { super.initState(); final lines = widget.initialText.split(RegExp(r'\r?\n')).where((line) => line.trim().isNotEmpty).toList(); _title.text = lines.isEmpty ? '' : lines.first; _message.text = widget.initialText; }
   @override
@@ -641,7 +697,62 @@ class _AnnouncementContentPageState extends State<AnnouncementContentPage> {
         ),
         const SizedBox(height: 20),
         ],
-        Row(children: [OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Back')), const SizedBox(width: 10), Expanded(child: FilledButton.icon(onPressed: _save, icon: const Icon(Icons.auto_awesome, size: 16), style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7C3AED), minimumSize: const Size(0, 48)), label: const Text('Process with AI')))]),
+
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirestoreService.instance.collection('classrooms'),
+          builder: (context, snapshot) {
+            if (snapshot.hasError || !snapshot.hasData) return const SizedBox();
+            final classrooms = snapshot.data!.docs.map((doc) => doc.id).toList();
+            if (classrooms.isEmpty) return const SizedBox();
+            
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Target Classrooms *', style: TextStyle(color: Color(0xFF4F46E5), fontSize: 11, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: classrooms.map((classroom) {
+                    final isSelected = _selectedClassrooms.contains(classroom);
+                    return FilterChip(
+                      label: Text(classroom, style: const TextStyle(fontSize: 11)),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedClassrooms.add(classroom);
+                          } else {
+                            _selectedClassrooms.remove(classroom);
+                          }
+                        });
+                      },
+                      selectedColor: const Color(0xFFE0E7FF),
+                      checkmarkColor: const Color(0xFF4F46E5),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 13),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+
+        Row(children: [
+          OutlinedButton(onPressed: _isSaving ? null : () => Navigator.pop(context), child: const Text('Back')),
+          const SizedBox(width: 10),
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: _isSaving ? null : _save,
+              icon: _isSaving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send, size: 16),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7C3AED), minimumSize: const Size(0, 48)),
+              label: Text(_isSaving ? 'Broadcasting...' : 'Submit Announcement'),
+            ),
+          )
+        ]),
       ]))),
     ])),
   );
@@ -662,9 +773,11 @@ class _AnnouncementContentPageState extends State<AnnouncementContentPage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a title and description.')));
       return;
     }
+    setState(() { _isSaving = true; });
     final data = <String, dynamic>{
       'title': _title.text.trim(), 'message': _message.text.trim(), 'category': _category,
       'priority': _priority, 'department': _department, 'audience': _audience, 'status': 'published',
+      'classes': _selectedClassrooms,
     };
     try {
       Uint8List? uploadBytes = _attachmentBytes;
@@ -685,9 +798,18 @@ class _AnnouncementContentPageState extends State<AnnouncementContentPage> {
         if (image) data['posterUrl'] = url;
       }
       await FirestoreService.instance.createDocument('announcements', data);
-      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
-    } on FirebaseException catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not upload the attachment. Enable Firebase Storage and check its rules.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Announcement submitted successfully!'), backgroundColor: Colors.green));
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } on FirebaseException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Submission failed: ${e.message}')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) {
+        setState(() { _isSaving = false; });
+      }
     }
   }
 }

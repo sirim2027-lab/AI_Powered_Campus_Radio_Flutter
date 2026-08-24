@@ -660,7 +660,7 @@ class _CampusLoginPageState extends State<CampusLoginPage> {
             const SizedBox(height: 5),
             _input(
               controller: regNameController,
-              hint: isRegAdmin ? 'e.g., Prof. John Doe' : 'e.g., Dhanushree S',
+              hint: isRegAdmin ? 'e.g., Prof. John Doe' : 'e.g., Amit Kumar',
               icon: Icons.person_outline,
             ),
             const SizedBox(height: 12),
@@ -903,6 +903,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     'Student Queries',
     'Radio Programmes',
     'Departments',
+    'Classrooms',
     'Users',
     'Notifications',
     'Profile',
@@ -916,6 +917,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     Icons.question_answer_outlined,
     Icons.radio_outlined,
     Icons.business_outlined,
+    Icons.sensors_outlined,
     Icons.people_outline,
     Icons.notifications_outlined,
     Icons.person_outline,
@@ -952,8 +954,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       (0, 'Home', Icons.home_outlined),
       (1, 'Announce', Icons.campaign_outlined),
       (2, 'Queries', Icons.question_answer_outlined),
-      (6, 'Notifs', Icons.notifications_none),
-      (7, 'Profile', Icons.person_outline),
+      (7, 'Notifs', Icons.notifications_none),
+      (8, 'Profile', Icons.person_outline),
     ];
     final selected = destinations.indexWhere((item) => item.$1 == selectedIndex);
     return StreamBuilder<int>(
@@ -1458,18 +1460,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
         );
 
       case 5:
-        return const AdminUsersFigmaPage();
+        return const AdminCollectionPage(
+          title: 'Classrooms',
+          collection: 'classrooms',
+          icon: Icons.sensors_outlined,
+          fields: [
+            AdminField('name', 'Classroom Name (e.g. Seminar Hall 1)'),
+            AdminField('macAddress', 'MAC Address (e.g. 24:0A:C4:8A:2B:10)'),
+            AdminField('status', 'Status (e.g. active)'),
+          ],
+        );
 
       case 6:
-        return const AdminNotificationsFigmaPage();
+        return const AdminUsersFigmaPage();
 
       case 7:
-        return _adminProfilePage();
+        return const AdminNotificationsFigmaPage();
 
       case 8:
-        return _adminSettingsPage();
+        return _adminProfilePage();
 
       case 9:
+        return _adminSettingsPage();
+
+      case 10:
         return _adminHelpPage();
 
       default:
