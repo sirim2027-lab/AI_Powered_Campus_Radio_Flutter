@@ -47,18 +47,37 @@ class _CampusLoginPageState extends State<CampusLoginPage> {
   bool rememberMe = false;
   bool obscurePassword = true;
   bool isLoading = false;
+  bool isRegistering = false;
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  final TextEditingController regNameController = TextEditingController();
+  final TextEditingController regEmailController = TextEditingController();
+  final TextEditingController regPasswordController = TextEditingController();
+  final TextEditingController regUsnController = TextEditingController();
+  String regSemester = '1st Semester';
 
   static const purple = Color(0xFF513FE4);
   static const brightPurple = Color(0xFF7137E9);
   static const muted = Color(0xFF64709C);
 
   @override
+  void initState() {
+    super.initState();
+    regEmailController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    regNameController.dispose();
+    regEmailController.dispose();
+    regPasswordController.dispose();
+    regUsnController.dispose();
     super.dispose();
   }
 
@@ -230,7 +249,7 @@ class _CampusLoginPageState extends State<CampusLoginPage> {
                 children: [
                   _buildHero(),
                   Expanded(
-                    child: _buildLoginCard(),
+                    child: isRegistering ? _buildRegisterCard() : _buildLoginCard(),
                   ),
                 ],
               ),
@@ -478,6 +497,310 @@ class _CampusLoginPageState extends State<CampusLoginPage> {
               ),
             ),
 
+            const SizedBox(height: 12),
+
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    isRegistering = true;
+                  });
+                },
+                child: const Text(
+                  "Don't have an account? Register here",
+                  style: TextStyle(
+                    color: purple,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getDepartmentFromUsn(String usn) {
+    if (usn.length < 7) return 'General';
+    final code = usn.substring(5, 7).toUpperCase();
+    return switch (code) {
+      'CS' => 'CSE',
+      'DS' => 'Data Science',
+      'EC' => 'ECE',
+      'ME' => 'MECH',
+      'CV' => 'CIVIL',
+      'EE' => 'EEE',
+      'IS' => 'ISE',
+      _ => 'Other',
+    };
+  }
+
+  Future<void> _register() async {
+    final name = regNameController.text.trim();
+    final email = regEmailController.text.trim();
+    final password = regPasswordController.text;
+    final usn = regUsnController.text.trim();
+
+    final isAdmin = email.toLowerCase().startsWith('principal') ||
+        email.toLowerCase().startsWith('hod.') ||
+        email.toLowerCase() == 'admin@vemanait.edu.in';
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty || (!isAdmin && usn.isEmpty)) {
+      _showMessage('Please fill in all fields.', isError: true);
+      return;
+    }
+
+    if (!email.toLowerCase().endsWith('@vemanait.edu.in')) {
+      _showMessage('Please use your official @vemanait.edu.in email.', isError: true);
+      return;
+    }
+
+    if (password.length < 6) {
+      _showMessage('Password must be at least 6 characters long.', isError: true);
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final user = credential.user;
+      if (user == null) {
+        throw StateError('Firebase Auth registration did not return a user.');
+      }
+
+      final Map<String, dynamic> profileData = {
+        'uid': user.uid,
+        'email': email,
+        'name': name,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      if (isAdmin) {
+        profileData['role'] = 'admin';
+      } else {
+        profileData['role'] = 'student';
+        profileData['studentId'] = usn;
+        profileData['department'] = _getDepartmentFromUsn(usn);
+        profileData['semester'] = regSemester;
+      }
+
+      // Create the profile document directly in Firestore
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(profileData);
+
+      _showMessage('Registration successful!', isError: false);
+    } on FirebaseAuthException catch (e) {
+      _showMessage(e.message ?? 'Registration failed.', isError: true);
+    } catch (e) {
+      _showMessage(e.toString(), isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildRegisterCard() {
+    final emailVal = regEmailController.text.trim().toLowerCase();
+    final isRegAdmin = emailVal.startsWith('principal') ||
+        emailVal.startsWith('hod.') ||
+        emailVal == 'admin@vemanait.edu.in';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFCFCFF),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(22),
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isRegAdmin ? 'Staff Registration' : 'Student Registration',
+              style: const TextStyle(
+                color: purple,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isRegAdmin
+                  ? 'Create a staff/admin account for campus management'
+                  : 'Create a student account using your college email',
+              style: const TextStyle(
+                color: muted,
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(height: 15),
+
+            const Text(
+              'Full Name',
+              style: TextStyle(
+                color: purple,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 5),
+            _input(
+              controller: regNameController,
+              hint: isRegAdmin ? 'e.g., Prof. John Doe' : 'e.g., Dhanushree S',
+              icon: Icons.person_outline,
+            ),
+            const SizedBox(height: 12),
+
+            const Text(
+              'College Email',
+              style: TextStyle(
+                color: purple,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 5),
+            _input(
+              controller: regEmailController,
+              hint: 'name.ds2023@vemanait.edu.in',
+              icon: Icons.mail_outline,
+            ),
+            const SizedBox(height: 12),
+
+            if (!isRegAdmin) ...[
+              const Text(
+                'USN (Student ID)',
+                style: TextStyle(
+                  color: purple,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 5),
+              _input(
+                controller: regUsnController,
+                hint: 'e.g., 1VE23DS023',
+                icon: Icons.badge_outlined,
+              ),
+              const SizedBox(height: 12),
+
+              const Text(
+                'Semester',
+                style: TextStyle(
+                  color: purple,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 5),
+              DropdownButtonFormField<String>(
+                value: regSemester,
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFDDD6FE)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFDDD6FE)),
+                  ),
+                ),
+                items: const [
+                  '1st Semester', '2nd Semester', '3rd Semester', '4th Semester',
+                  '5th Semester', '6th Semester', '7th Semester', '8th Semester'
+                ]
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 11))))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => regSemester = val);
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            const Text(
+              'Password',
+              style: TextStyle(
+                color: purple,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 5),
+            _input(
+              controller: regPasswordController,
+              hint: '••••••••••',
+              icon: Icons.lock_outline,
+              password: true,
+            ),
+            const SizedBox(height: 18),
+
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                onPressed: isLoading ? null : _register,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: brightPurple,
+                  foregroundColor: Colors.white,
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Register',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    isRegistering = false;
+                  });
+                },
+                child: const Text(
+                  "Already have an account? Login here",
+                  style: TextStyle(
+                    color: purple,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

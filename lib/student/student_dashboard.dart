@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/app_user.dart';
+import '../core/routes/app_routes.dart';
 import '../core/services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../features/student/screens/student_settings_screen.dart';
@@ -275,7 +276,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
   );
   Future<void> logout() async {
     await AuthService.instance.signOut();
-    if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.login,
+        (route) => false,
+      );
+    }
   }
 }
 
