@@ -64,7 +64,7 @@ class CampusRadioApp extends StatelessWidget {
         return _protectedRoute(
           settings: settings,
           allowedRoles: _staffRoles,
-          builder: (profile) => adminBuilder(profile, initialIndex: 8),
+          builder: (profile) => adminBuilder(profile, initialIndex: 9),
         );
       case AppRoutes.adminAnnouncements:
         return _protectedRoute(
