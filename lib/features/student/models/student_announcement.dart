@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StudentAnnouncement {
-  const StudentAnnouncement({required this.id, required this.title, required this.summary, required this.category, required this.department, required this.timestamp, this.posterUrl, this.attachmentUrl, this.priority = 'normal'});
-  final String id, title, summary, category, department, priority;
+  const StudentAnnouncement({required this.id, required this.title, required this.summary, required this.category, required this.department, required this.timestamp, this.posterUrl, this.attachmentUrl});
+  final String id, title, summary, category, department;
   final DateTime? timestamp;
   final String? posterUrl, attachmentUrl;
 
@@ -14,7 +14,6 @@ class StudentAnnouncement {
       summary: '${data['message'] ?? data['description'] ?? ''}',
       category: '${data['category'] ?? 'General'}',
       department: '${data['department'] ?? data['postedBy'] ?? 'Campus Radio'}',
-      priority: '${data['priority'] ?? 'normal'}'.toLowerCase(),
       timestamp: (data['createdAt'] as Timestamp?)?.toDate(),
       posterUrl: data['posterUrl'] as String?,
       attachmentUrl: data['attachmentUrl'] as String?,

@@ -104,7 +104,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   Widget home() => SingleChildScrollView(child: Column(children: [
     Container(width: double.infinity, padding: EdgeInsets.fromLTRB(wide ? 32 : 20, 30, wide ? 32 : 20, 28), decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [navy, indigo, Color(0xFF6D28D9)]), borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1080), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Thursday, August 7, 2026', style: TextStyle(color: Colors.white.withValues(alpha: .65), fontSize: 12)), const SizedBox(height: 5), Text('Good morning, $name 👋', style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w800)), const SizedBox(height: 20),
+      Text(_dateLabel(), style: TextStyle(color: Colors.white.withValues(alpha: .65), fontSize: 12)), const SizedBox(height: 5), Text('${_greeting()}, $name 👋', style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w800)), const SizedBox(height: 20),
       Container(
         height: 46,
         decoration: BoxDecoration(color: Colors.white.withValues(alpha: .13), border: Border.all(color: Colors.white.withValues(alpha: .2)), borderRadius: BorderRadius.circular(14)),
@@ -139,6 +139,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
     ]))),
   ]));
 
+  String _greeting() { final hour = DateTime.now().hour; if (hour < 12) return 'Good morning'; if (hour < 17) return 'Good afternoon'; return 'Good evening'; }
+  String _dateLabel() { final now = DateTime.now(); const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}, ${now.year}'; }
   Widget stats() => Row(children: [
     liveStat('Announcements', FirestoreService.instance.count('announcements'), Icons.campaign, indigo),
     const SizedBox(width: 10),

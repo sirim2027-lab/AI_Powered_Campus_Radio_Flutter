@@ -1042,7 +1042,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             GestureDetector(onTap: () => setState(() => selectedIndex = 7), child: CircleAvatar(radius: 17, backgroundColor: const Color(0xFF7C3AED), child: Text(widget.role.substring(0, 1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)))),
           ]),
           const SizedBox(height: 11),
-          const Text('Good Evening 👋', style: TextStyle(fontSize: 11, color: Color(0xFFBFDBFE))),
+          Text('${_greeting()} 👋', style: const TextStyle(fontSize: 11, color: Color(0xFFBFDBFE))),
           Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${widget.role} Administrator', style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(color: const Color(0x337C3AED), borderRadius: BorderRadius.circular(8)), child: Text(widget.role, style: const TextStyle(fontSize: 9, color: Color(0xFFE9D5FF), fontWeight: FontWeight.w700))), const SizedBox(width: 8), const Text('Administration', style: TextStyle(fontSize: 10, color: Color(0xFFBFDBFE)))])])), Container(width: 45, height: 45, decoration: BoxDecoration(color: const Color(0x337C3AED), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: Text(widget.role.substring(0, 1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)))]),
           const SizedBox(height: 12),
           Row(children: [Text(_dateLabel(), style: const TextStyle(fontSize: 10, color: Color(0xFFBFDBFE))), const Spacer(), const Text('Endpoint backend unavailable', style: TextStyle(fontSize: 10, color: Color(0xFFFDE68A), fontWeight: FontWeight.w700))]),
@@ -1056,6 +1056,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
+  String _greeting() { final hour = DateTime.now().hour; if (hour < 12) return 'Good morning'; if (hour < 17) return 'Good afternoon'; return 'Good evening'; }
   Widget _figmaAnnouncementStats() => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirestoreService.instance.collection('announcements'),
         builder: (_, snapshot) {

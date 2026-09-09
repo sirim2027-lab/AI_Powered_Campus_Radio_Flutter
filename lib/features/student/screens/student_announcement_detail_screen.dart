@@ -80,7 +80,6 @@ class StudentAnnouncementDetailScreen extends StatelessWidget {
                     [
                       _row('Department', announcement.department),
                       _row('Posted', announcement.timeLabel),
-                      _row('Priority', announcement.priority.toUpperCase()),
                     ],
                   ),
                   const SizedBox(height: 16),

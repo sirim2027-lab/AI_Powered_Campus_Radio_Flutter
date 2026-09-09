@@ -12,7 +12,6 @@ class AnnouncementCard extends StatelessWidget {
     child: InkWell(onTap: onTap, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(height: 100, width: double.infinity, decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF1E1B4B), Color(0xFF4338CA)])), child: Stack(children: [
         Center(child: announcement.posterUrl == null ? const Icon(Icons.campaign_outlined, size: 38, color: Colors.white) : Image.network(announcement.posterUrl!, fit: BoxFit.cover, width: double.infinity, errorBuilder: (_, _, _) => const Icon(Icons.campaign_outlined, size: 38, color: Colors.white))),
-        if (announcement.priority == 'urgent') const Positioned(top: 8, left: 8, child: Chip(label: Text('URGENT', style: TextStyle(color: Color(0xFFFBBF24), fontSize: 10, fontWeight: FontWeight.w800)), backgroundColor: Color(0x334F46E5), side: BorderSide.none, visualDensity: VisualDensity.compact)),
       ])),
       Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Chip(label: Text(announcement.category), visualDensity: VisualDensity.compact, backgroundColor: const Color(0xFFEEF2FF), labelStyle: const TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.w700, fontSize: 10), side: BorderSide.none),
